@@ -8,15 +8,20 @@ const {
   ordersAll,
   orderStatus,
 } = require("../controllers/orderController");
-const Authmiddleware = require("../middleware/Auth");
+const authMiddleware = require("../middleware/Auth");
+
 
 order_Route.use(express.json());
 order_Route.use(bodyParser.json());
 order_Route.use(bodyParser.urlencoded({ extended: true }));
 
-order_Route.post(`/createOrder`, Authmiddleware, orderCreate);
-order_Route.get(`/orderDetails/:id`, Authmiddleware, orderDetails);
-order_Route.get(`/orders`, ordersAll);
-order_Route.put(`/orderStatus/:id`,Authmiddleware,orderStatus);
+order_Route.post(
+  `/createOrder`,
+  authMiddleware,
+  orderCreate
+);
+order_Route.get(`/orderDetails/:id`, authMiddleware, orderDetails);
+order_Route.get(`/orders`, authMiddleware,ordersAll);
+order_Route.put(`/orderStatus/:id`, authMiddleware,  orderStatus);
 
 module.exports = order_Route;
