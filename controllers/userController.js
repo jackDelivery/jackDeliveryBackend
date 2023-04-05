@@ -6,7 +6,7 @@ const randomstring = require("randomstring");
 const CloudUploadImage = require("../utils/CloudniaryCloud/Cloudinary");
 const sendEmail = require("../utils/sendEmail");
 const { sendToken } = require("../utils/SendToken");
-const BASE_URL = process.env.BASE_URL; 
+
 
 
 
@@ -363,11 +363,11 @@ const forgetPassword = async (req, res) => {
         { $set: { token: randomString } }
       );
 
-      // const resetPasswordurl = `${req.protocol}://${req.get(
-      //   "host"
-      // )}/reset-password?token=${randomString}`;
+      const resetPasswordurl = `${req.protocol}://${req.get(
+        "host"
+      )}/reset-password?token=${randomString}`;
 
-      const resetPasswordurl = `${BASE_URL}/reset-password?token=${randomString}`;
+     
 
       await sendEmail({
         email: userData.email,
