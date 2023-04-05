@@ -55,6 +55,11 @@ const user = mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  category: {
+    type: String,
+    required: true,
+    default:"gifts"
+  },
 
   createdAt: {
     type: Date,
