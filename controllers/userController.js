@@ -6,8 +6,9 @@ const randomstring = require("randomstring");
 const CloudUploadImage = require("../utils/CloudniaryCloud/Cloudinary");
 const sendEmail = require("../utils/sendEmail");
 const { sendToken } = require("../utils/SendToken");
-
-
+const { verificationModel } = require("../models/verificationToken");
+const { isValidObjectId } = require("mongoose");
+const { generateOTP } = require("../middleware/Otp");
 
 
 // ottp
@@ -112,7 +113,6 @@ const registerUser = async (req, res) => {
         .json({ success: false, message: "User already exists" });
     }
 
-    const otp = Math.floor(Math.random() * 1000000);
 
     user = await userModel.create({
       riderName,
@@ -122,12 +122,21 @@ const registerUser = async (req, res) => {
       mobile,
       vehiclenumberplate,
       crNumber,
-      category,
-      otp,
-      otp_expiry: new Date(Date.now() + process.env.OTP_EXPIRE * 60 * 1000),
+      category
+      // otp,
+      // otp_expiry: new Date(Date.now() + process.env.OTP_EXPIRE * 60 * 1000),
     });
 
-    await sendOTTp(email, otp);
+    const OTP = generateOTP()
+  
+    const verificationToken = new verificationModel({
+      owner: user._id,
+      token: OTP,
+    });
+
+    await verificationToken.save();
+    await sendOTTp(email, OTP);
+
 
     sendToken(
       res,
@@ -135,12 +144,6 @@ const registerUser = async (req, res) => {
       201,
       "OTP sent to your email, please verify your account"
     );
-
-    // const OTP = generateOTP();
-    // const verificationToken = new verificationModel({
-    //   owner: user._id,
-    //   token: OTP,
-    // });
   } catch (error) {
     console.log(error?.message);
     res.status(500).json({ success: false, message: error.message });
@@ -367,7 +370,7 @@ const forgetPassword = async (req, res) => {
         "host"
       )}/reset-password?token=${randomString}`;
 
-     
+      
 
       await sendEmail({
         email: userData.email,
@@ -382,7 +385,7 @@ const forgetPassword = async (req, res) => {
 
       res
         .status(200)
-        .send({ success: true, msg: "Please check your inbox of mail" });
+        .send({ success: true, msg: "Please check your inbox of mail"});
     } else {
       res.status(400).send({ success: true, msg: "This email does not exits" });
     }
@@ -425,79 +428,80 @@ const resetPassword = async (req, res) => {
 
 // Verify Email
 
-// const VerifyEmail = async (req, res) => {
-//   try {
-//     const { userId, otp } = req.body;
-//     if (!userId || !otp.trim()) {
-//       return res.status(400).send("Invalid request, missing parameters!");
-//     }
-
-//     if (!isValidObjectId(userId)) {
-//       return res.status(400).send("Invalid user id");
-//     }
-
-//     const user = await userModel.findById(userId);
-
-//     if (!user) {
-//       return res.status(400).send("Sorry, user not found!");
-//     }
-
-//     if (user.verified) {
-//       return res.status(400).send("This account is already verified!");
-//     }
-
-//     const token = await verificationModel.findOne({ owner: user._id });
-
-//     if (!token) {
-//       return res.status(400).send("Sorry, user not found!");
-//     }
-
-//     const isMatched = await token.compareToken(otp);
-
-//     if (!isMatched) {
-//       return res.status(400).send("Please Provide a Valid Token!");
-//     }
-
-//     user.verified = true;
-
-//     await verificationModel.findByIdAndDelete(token._id);
-
-//     await user.save();
-
-//     await verifiedEmail(user.email);
-
-//     res
-//       .status(200)
-//       .send({ success: true, message: "Your Email is Verified", data: user });
-//   } catch (error) {
-//     res.status(400).send(error.message);
-//   }
-// };
-
-const verify = async (req, res) => {
+const VerifyEmail = async (req, res) => {
   try {
-    const otp = Number(req.body.otp);
+    const { userId, otp } = req.body;
+    
+    if (!userId || !otp.trim()) {
+      return res.status(400).send("Invalid request, missing parameters!");
+    }
 
-    const user = await userModel.findById(req.user._id);
+    if (!isValidObjectId(userId)) {
+      return res.status(400).send("Invalid user id");
+    }
 
-    if (user.otp !== otp || user.otp_expiry < Date.now()) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid OTP or has been Expired!" });
+    const user = await userModel.findById(userId);
+
+    // if (!user) {
+    //   return res.status(400).send("Sorry, user not found!");
+    // }
+
+    if (user.verified) {
+      return res.status(400).send("This account is already verified!");
+    }
+
+    const token = await verificationModel.findOne({ owner: user._id });
+
+    if (!token) {
+      return res.status(400).send("Sorry, user not found!");
+    }
+
+    const isMatched = await token.compareToken(otp);
+
+    if (!isMatched) {
+      return res.status(400).send("Please Provide a Valid Token!");
     }
 
     user.verified = true;
-    user.otp = null;
-    user.otp_expiry = null;
+
+    await verificationModel.findByIdAndDelete(token._id);
 
     await user.save();
+
     await verifiedEmail(user.email);
 
-    res.status(200).json({ success: true, message: "Your Account Verified!" });
+    res
+      .status(200)
+      .send({ success: true, message: "Your Email is Verified", data: user });
   } catch (error) {
-    res.status(500).json({ success: false, message: error?.message });
+    res.status(400).send(error.message);
   }
 };
+
+// const verify = async (req, res) => {
+//   try {
+//     const otp = Number(req.body.otp);
+
+//     const user = await userModel.findById(req.user._id);
+
+//     if (user.otp !== otp || user.otp_expiry < Date.now()) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Invalid OTP or has been Expired!" });
+//     }
+
+//     user.verified = true;
+//     user.otp = null;
+//     user.otp_expiry = null;
+
+//     await user.save();
+//     await verifiedEmail(user.email);
+
+//     res.status(200).json({ success: true, message: "Your Account Verified!" });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error?.message });
+//   }
+// };
 
 module.exports = {
   registerUser,
@@ -508,8 +512,8 @@ module.exports = {
   forgetPassword,
   resetPassword,
   profileUpdate,
-  // VerifyEmail,
-  verify,
+  VerifyEmail,
+  // verify,
   logout,
   uploadProfileImage,
 };
