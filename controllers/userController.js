@@ -442,9 +442,9 @@ const VerifyEmail = async (req, res) => {
 
     const user = await userModel.findById(userId);
 
-    // if (!user) {
-    //   return res.status(400).send("Sorry, user not found!");
-    // }
+    if (!user) {
+      return res.status(400).send("Sorry, user not found!");
+    }
 
     if (user.verified) {
       return res.status(400).send("This account is already verified!");

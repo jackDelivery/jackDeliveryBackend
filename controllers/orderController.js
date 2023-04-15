@@ -1,90 +1,149 @@
 const { orderModel } = require("../models/OrderModel");
+const { userModel } = require("../models/userModel");
 
-// create Order
+// create order
+
 const orderCreate = async (req, res) => {
   try {
-    const {
-      roname,
-      reciever_name,
-      mobile,
-      address,
-      nearest_landmark,
-      order_details,
-      Orderstatus,
-      PaymentStatus,
-    } = req.body;
-
-    let data = await orderModel({
-      roname: roname,
-      reciever_name: reciever_name,
-      mobile: mobile,
-      address: address,
-      nearest_landmark: nearest_landmark,
-      order_details: order_details,
-      Orderstatus: Orderstatus,
-      PaymentStatus: PaymentStatus,
-    });
-
-    let checkname = await orderModel.findOne({ reciever_name: reciever_name });
-
-    if (checkname) {
-      return res
-        .status(200)
-        .send({ success: false, msg: "This Order is already register" });
+    if (
+      !req.body.rider ||
+      !req.body.address ||
+      !req.body.nearest_landmark ||
+      !req.body.reciever_name ||
+      !req.body.mobile ||
+      !req.body.order_details ||
+      !req.body.latitude ||
+      !req.body.longitude
+    ) {
+      res.status(200).send({ success: false, msg: "All fields are required!" });
     } else {
-      const mydata = await data.save();
+
+      const store = new orderModel({
+        rider: req.body.rider,
+        address: req.body.address,
+        nearest_landmark: req.body.nearest_landmark,
+        reciever_name: req.body.reciever_name,
+        mobile: req.body.mobile,
+        order_details: req.body.order_details,
+        PaymentStatus: req.body.PaymentStatus,
+        location: {
+          type: "Point",
+          coordinates: [
+            parseFloat(req.body.longitude),
+            parseFloat(req.body.latitude),
+          ],
+        },
+      });
+
+      // let alreadyId = await userModel.findOne({ id });
+
+      // if (alreadyId) {
+      //   return res
+      //     .status(400)
+      //     .json({
+      //       success: false,
+      //       message: `Order ${req.body.id} already exists`,
+      //     });
+      // }
+
+      const storeData = await store.save();
       res
         .status(200)
-        .send({ message: "Your Order has been Completed", result: mydata });
+        .send({ success: true, msg: "Order is Created.", data: storeData });
     }
   } catch (error) {
-    res.status(500).send(error.message);
+    res.status(400).send(error.message);
   }
 };
 
-// find all orders
-const ordersAll = async (req, res) => {
+// const orderCreate = async (req, res) => {
+//   const orderData = req.body;
+
+//   if (
+//     !orderData ||
+//     !orderData.id ||
+//     !orderData.rider ||
+//     !orderData.address ||
+//     !orderData.nearest_landmark ||
+//     !orderData.reciever_name ||
+//     !orderData.mobile ||
+//     !orderData.order_details ||
+//     !orderData.PaymentStatus
+//   ) {
+//     return res.status(400).send("Invalid order data");
+//   }
+//   try {
+//     let order = await orderModel.findOne({ id: orderData.id });
+
+//     if (!order) {
+//       order = new orderModel({
+//         id: orderData.id,
+//         orders: [
+//           {
+//             rider: orderData.rider,
+//             address: orderData.address,
+//             location: {
+//               type: "Point",
+//               coordinates: [
+//                 parseFloat(req.body.longitude),
+//                 parseFloat(req.body.latitude),
+//               ],
+//             },
+//             nearest_landmark: orderData.nearest_landmark,
+//             reciever_name: orderData.reciever_name,
+//             mobile: orderData.mobile,
+//             order_details: orderData.order_details,
+//             PaymentStatus: orderData.PaymentStatus,
+//           },
+//         ],
+//       });
+//     } else {
+//       order.orders.push({
+//         rider: orderData.rider,
+//         address: orderData.address,
+//         price: orderData.price,
+//         longitude: req.body.longitude,
+//         latitude: req.body.latitude,
+//         nearest_landmark: orderData.nearest_landmark,
+//         reciever_name: orderData.reciever_name,
+//         mobile: orderData.mobile,
+//         order_details: orderData.order_details,
+//         PaymentStatus: orderData.PaymentStatus,
+//       });
+//     }
+
+//     await order.save();
+
+//     res.status(201).send("Order created/updated successfully");
+//   } catch (error) {
+//     res.status(500).json({ error: error?.message });
+//   }
+// };
+
+// get order
+const orderGet = async (req, res) => {
   try {
-    const ordersall = await orderModel
-      .find({})
-      .populate("roname", [
-        "riderName",
-        "organizationName",
-        "crNumber",
-        "vehiclenumberplate",
-        "email",
-        "profilePhoto",
-        "mobile",
-        "verified"
-      ]);
+    const stores = await orderModel.find().populate("rider");
 
-    if (!ordersall) {
-      return res.status(400).send("Something Error");
-    }
-
-    res.status(200).send(ordersall);
+    return res.status(200).json({
+      success: true,
+      count: stores.length,
+      data: stores,
+    });
   } catch (error) {
-    res.status(500).send(error.message);
+    console.log(error);
+    res.status(500).json({ error: error?.message });
   }
 };
 
-// find details order
+// // find details order
 
 const orderDetails = async (req, res) => {
   try {
     const { id } = req.params;
     const orderDetail = await orderModel
       .findById(id)
-      .populate("roname", [
-        "riderName",
-        "organizationName",
-        "crNumber",
-        "vehiclenumberplate",
-        "email",
-        "profilePhoto",
-        "mobile",
-        "verified"
-      ]);
+      .populate("rider", ["-password", "-token"]);
 
     if (!orderDetail) {
       return res.status(400).send("Something Error");
@@ -96,10 +155,6 @@ const orderDetails = async (req, res) => {
   }
 };
 
-
-
-
-// order  status
 const orderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -122,13 +177,12 @@ const orderStatus = async (req, res) => {
   }
 };
 
+module.exports = { orderCreate, orderGet, orderDetails,orderStatus };
 
-
-
-// exports
-module.exports = {
-  orderCreate,
-  orderDetails,
-  ordersAll,
-  orderStatus,
-};
+// location: {
+//   type: "Point",
+//   coordinates: [
+//     parseFloat(req.body.longitude),
+//     parseFloat(req.body.latitude),
+//   ],
+// },
