@@ -37,4 +37,26 @@ const walletUser = async (req, res) => {
   }
 };
 
-module.exports = { wallet, walletUser };
+const removeWallet = async (req, res) => {
+  const { _id } = req.user;
+
+  try {
+    let wallet = await userModel.findOne(_id);
+
+    if (!wallet) {
+      // Return an error response if the wallet is not found
+      return res.status(404).json({ error: "Wallet not found" });
+    }
+
+    // Update the wallet amount to 0
+    wallet.balance = 0;
+    await wallet.save();
+
+    // Return a success response
+    return res.json({ message: "Wallet amount cleared" });
+  } catch (error) {
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+module.exports = { wallet, walletUser, removeWallet };
