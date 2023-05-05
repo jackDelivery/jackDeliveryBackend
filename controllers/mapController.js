@@ -1,5 +1,6 @@
 const axios = require("axios");
 const { Location } = require("../models/MapModel");
+const GOOGLE_MAPS_API_KEY = 'AIzaSyAoSbver7G9emTgsZMM4RCAXt3z5pjauYE'; 
 
 const mapLocation = async (req, res) => {
   try {
@@ -41,4 +42,25 @@ const mapLocation = async (req, res) => {
   }
 };
 
-module.exports = { mapLocation };
+
+const getTime =  async (req, res) => {
+  const { pickup, dropoff } = req.query;
+
+  try {
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=${pickup}&destinations=${dropoff}&key=${GOOGLE_MAPS_API_KEY}`
+    );
+
+    const duration = response.data.rows[0].elements[0].duration.text;
+
+    res.status(200).json({ duration });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+
+
+module.exports = { mapLocation,getTime };
