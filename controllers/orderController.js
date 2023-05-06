@@ -11,6 +11,7 @@ const orderCreate = async (req, res) => {
       !req.body.nearest_landmark ||
       !req.body.reciever_name ||
       !req.body.mobile ||
+      !req.body.ammount ||
       !req.body.order_details ||
       !req.body.latitude ||
       !req.body.longitude
@@ -24,6 +25,7 @@ const orderCreate = async (req, res) => {
         nearest_landmark: req.body.nearest_landmark,
         reciever_name: req.body.reciever_name,
         mobile: req.body.mobile,
+        ammount:req.body.ammount,
         order_details: req.body.order_details,
         PaymentStatus: req.body.PaymentStatus,
         location: {

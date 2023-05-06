@@ -48,7 +48,11 @@ const Order = new mongoose.Schema({
     type: String,
     default: "Pending",
   },
-
+  ammount:{
+    type:Number,
+    required: [true, "Please Ammount Number is Required!"],
+    default:0
+  },
   Orderstatus: {
     type: String,
     default: "Pending",
